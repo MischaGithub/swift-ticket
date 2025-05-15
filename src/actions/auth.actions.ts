@@ -112,3 +112,77 @@ export async function logoutUser(): Promise<{
     };
   }
 }
+
+// Log user in
+export async function loginUser(
+  prevState: ResponseResult,
+  formData: FormData
+): Promise<ResponseResult> {
+  try {
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    // Validate user
+    // Check if email and password are provided
+    if (!email || !password) {
+      logEvent(
+        "Validation error: Missing login fields",
+        "auth",
+        { email },
+        "warning"
+      );
+      return {
+        success: false,
+        message: "Email and password are required",
+      };
+    }
+
+    // Check if the user exists in the database
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    // If user is not found or password is not set, return an error
+    // This is to prevent leaking information about whether the email exists
+    if (!user || !user.password) {
+      logEvent(
+        `Login failed: User not found - ${email}`,
+        "auth",
+        { email },
+        "warning"
+      );
+      return {
+        success: false,
+        message: "Invalid email or password",
+      };
+    }
+
+    // Compare the provided password with the hashed password in the database
+    // This is a secure way to check if the password is correct
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    // If the password is invalid, return an error
+    if (!isPasswordValid) {
+      logEvent("Login failed: Invalid password", "auth", { email }, "warning");
+      return {
+        success: false,
+        message: "Invalid email or password",
+      };
+    }
+
+    // If the password is valid, sign a new auth token
+    // and set it in the cookie
+    // This token will be used to authenticate the user in future requests
+    const token = await signAuthToken({ userId: user.id });
+    await setAuthCookie(token);
+
+    return { success: true, message: "Login successful" };
+  } catch (error) {
+    // Log the error and return a generic message
+    logEvent("Unexpected error during login", "auth", {}, "error", error);
+    return {
+      success: false,
+      message: "Error during login, please try again",
+    };
+  }
+}

@@ -2,9 +2,16 @@ import { getTickets } from "@/actions/ticket.actions";
 import { logEvent } from "@/utils/sentry";
 import Link from "next/link";
 import { getPriorityClass } from "@/utils/ui";
+import { getCurrentUser } from "@/lib/current-user";
+import { redirect } from "next/navigation";
 
 const TicketsPage = async () => {
+  const user = await getCurrentUser();
   const tickets = await getTickets();
+
+  if (!user) {
+    redirect("/login");
+  }
 
   return (
     <div className="min-h-screen bg-blue-50 p-8">
