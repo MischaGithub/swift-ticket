@@ -16,13 +16,11 @@ const TicketItem = ({ ticket }: TicketItemProps) => {
         isClosed ? "opacity-50" : ""
       }`}
     >
-      {/* Left Side */}
       <div>
         <h2 className="text-xl font-semibold text-blue-600">
           {ticket.subject}
         </h2>
       </div>
-      {/* Right Side */}
       <div className="text-right space-y-2">
         <div className="text-sm text-gray-500">
           Priority:{" "}
